@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: web
+  template:
+    metadata:
+      labels:
+        component: web
+    spec:
+      # specify persistent volume claim
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: database-persistent-volume-claim
+      containers:
+        - name: postgres
+          image: postgres
+          ports:
+            - containerPort: 5432
+          # mount the persistent volume claim
+          volumeMounts:
+            - name: postgres-storage
+              # copy data from postgresql/data
+              mountPath: /var/lib/postgresql/data
+              # and past inside postgres folder in PVC
+              subPath: postgres
+          env:
+            - name: PGPASSWORD
+            #value for this environment variable is set from the command line to create secret
+            # syntax: kubectl create secret generic <secret_name> --from-literal key=value
+            # e.g.    kubectl create secret generic pgpassword --from-literal PGPASSWORD=1234
+            # the reference from above secret_name is given here as a password value
+              valueFrom:
+                secretKeyRef:
+                  name: pgpassword
+                  key: PGPASSWORD
